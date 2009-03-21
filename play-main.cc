@@ -18,6 +18,7 @@ extern "C" {
 
 static brain_configuration* bc;
 static brain* b;
+static creature* c;
 static simulation* sim;
 
 static Uint32
@@ -57,9 +58,9 @@ display(void)
 
 	gluOrtho2D(-2000 / aspect, 2000 / aspect, -2000, 2000);
 
-	unsigned int n = sim->_brain->_nr_neurones;
-	double* synapses = sim->_brain->_synapses;
-	double* neurones = sim->_brain->_neurones[rd];
+	unsigned int n = b->_nr_neurones;
+	double* synapses = b->_synapses;
+	double* neurones = b->_neurones[rd];
 
 #if 0
 	glPushMatrix();
@@ -110,8 +111,8 @@ display(void)
 	glColor4f(1, 0, 0, 1);
 
 	glPushMatrix();
-	glTranslatef(sim->_creature_body->p.x, sim->_creature_body->p.y, 0);
-	glRotatef(cpvtoangle(sim->_creature_body->rot) * 180 / M_PI, 0, 0, 1);
+	glTranslatef(c->_creature_body->p.x, c->_creature_body->p.y, 0);
+	glRotatef(cpvtoangle(c->_creature_body->rot) * 180 / M_PI, 0, 0, 1);
 	glScalef(50, 50, 0);
 
 	glBegin(GL_QUADS);
@@ -125,16 +126,16 @@ display(void)
 	glColor4f(0, 0, 0, 1);
 	glBegin(GL_LINES);
 	glVertex2f(0, 0);
-	glVertex2f(5 * neurones[simulation::NEURONE_OUTPUT_MOVE_LEFT], 0);
+	glVertex2f(5 * neurones[creature::NEURONE_OUTPUT_MOVE_LEFT], 0);
 
 	glVertex2f(0, 0);
-	glVertex2f(-5 * neurones[simulation::NEURONE_OUTPUT_MOVE_RIGHT], 0);
+	glVertex2f(-5 * neurones[creature::NEURONE_OUTPUT_MOVE_RIGHT], 0);
 
 	glVertex2f(0, 0);
-	glVertex2f(0, -5 * neurones[simulation::NEURONE_OUTPUT_MOVE_UP]);
+	glVertex2f(0, -5 * neurones[creature::NEURONE_OUTPUT_MOVE_UP]);
 
 	glVertex2f(0, 0);
-	glVertex2f(0, 5 * neurones[simulation::NEURONE_OUTPUT_MOVE_DOWN]);
+	glVertex2f(0, 5 * neurones[creature::NEURONE_OUTPUT_MOVE_DOWN]);
 	glEnd();
 #endif
 
@@ -159,6 +160,8 @@ keyboard(SDL_KeyboardEvent* key)
 {
 	switch(key->keysym.sym) {
 	case SDLK_RETURN:
+		c->remove_from_space(sim->_space);
+		delete c;
 		delete b;
 		delete bc;
 		delete sim;
@@ -166,7 +169,10 @@ keyboard(SDL_KeyboardEvent* key)
 		bc = new brain_configuration(32);
 		bc->restore("best-brain");
 		b = new brain(bc);
-		sim = new simulation(b);
+		sim = new simulation();
+		c = new creature(b, sim->_food_body);
+		sim->_creatures.insert(c);
+		c->add_to_space(sim->_space);
 		break;
 	case SDLK_ESCAPE:
 		{
@@ -215,7 +221,10 @@ main(int argc, char* argv[])
 	bc = new brain_configuration(32);
 	bc->restore("best-brain");
 	b = new brain(bc);
-	sim = new simulation(b);
+	sim = new simulation();
+	c = new creature(b, sim->_food_body);
+	sim->_creatures.insert(c);
+	c->add_to_space(sim->_space);
 
 	SDL_TimerID display_timer = SDL_AddTimer(1000 / 100,
 		&displayTimer, NULL);
@@ -243,6 +252,8 @@ main(int argc, char* argv[])
 		}
 	}
 
+	c->remove_from_space(sim->_space);
+	delete c;
 	delete b;
 	delete bc;
 	delete sim;
