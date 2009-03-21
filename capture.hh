@@ -5,7 +5,12 @@ extern "C" {
 #include <png.h>
 }
 
-#ifdef CONFIG_CAPTURE
+#ifndef CONFIG_CAPTURE
+static void
+capture()
+{
+}
+#else
 static void
 capture()
 {

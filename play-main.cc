@@ -9,7 +9,7 @@ extern "C" {
 #include <chipmunk.h>
 }
 
-#define CONFIG_CAPTURE
+#undef CONFIG_CAPTURE
 
 #include "brain.hh"
 #include "brain_configuration.hh"
