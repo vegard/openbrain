@@ -62,6 +62,8 @@ creature::creature(brain* b, cpBody* food_body):
 	_creature_body->p.y = 1000. * (2.0 * rand() / RAND_MAX - 1);
 
 	_creature_shape = cpCircleShapeNew(_creature_body, 50.0, cpvzero);
+	_creature_shape->e = 0;
+	_creature_shape->u = 1;
 	_creature_shape->collision_type = COLLISION_TYPE_CREATURE;
 	_creature_shape->data = (void*) this;
 
@@ -103,8 +105,8 @@ creature::step()
 		++_nr_hit_food;
 		_creature_hit_food = false;
 
-		_food_body->p.x = 1000. * (2.0 * rand() / RAND_MAX - 1);
-		_food_body->p.y = 1000. * (2.0 * rand() / RAND_MAX - 1);
+		_food_body->p.x = 1800. * (2.0 * rand() / RAND_MAX - 1);
+		_food_body->p.y = 1800. * (2.0 * rand() / RAND_MAX - 1);
 		_food_body->v = cpvzero;
 	}
 

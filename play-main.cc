@@ -16,9 +16,14 @@ extern "C" {
 #include "capture.hh"
 #include "simulation.hh"
 
-static brain_configuration* bc;
-static brain* b;
-static creature* c;
+static brain_configuration* main_bc;
+
+#define NR_CREATURES 120
+
+static brain_configuration* bc[NR_CREATURES];
+static brain* b[NR_CREATURES];
+static creature* c[NR_CREATURES];
+
 static simulation* sim;
 
 static Uint32
@@ -49,6 +54,35 @@ resize(int width, int height)
 }
 
 static void
+draw_square(void)
+{
+	glBegin(GL_QUADS);
+	glVertex2f(-1, -1);
+	glVertex2f( 1, -1);
+	glVertex2f( 1,  1);
+	glVertex2f(-1,  1);
+	glEnd();
+}
+
+static void
+draw_box(void)
+{
+	glBegin(GL_LINES);
+	glVertex2f(-1, -1);
+	glVertex2f( 1, -1);
+
+	glVertex2f( 1, -1);
+	glVertex2f( 1,  1);
+
+	glVertex2f( 1,  1);
+	glVertex2f(-1,  1);
+
+	glVertex2f(-1,  1);
+	glVertex2f(-1, -1);
+	glEnd();
+}
+
+static void
 display(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -56,11 +90,7 @@ display(void)
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
-	gluOrtho2D(-2000 / aspect, 2000 / aspect, -2000, 2000);
-
-	unsigned int n = b->_nr_neurones;
-	double* synapses = b->_synapses;
-	double* neurones = b->_neurones[rd];
+	gluOrtho2D(-3000 / aspect, 3000 / aspect, -3000, 3000);
 
 #if 0
 	glPushMatrix();
@@ -92,54 +122,60 @@ display(void)
 	glPopMatrix();
 #endif
 
-	glColor4f(0, 1, 0, 1);
-
 	glPushMatrix();
 	glTranslatef(sim->_food_body->p.x, sim->_food_body->p.y, 0);
 	glRotatef(cpvtoangle(sim->_food_body->rot) * 180 / M_PI, 0, 0, 1);
 	glScalef(50, 50, 0);
 
-	glBegin(GL_QUADS);
-	glVertex2f(-1, -1);
-	glVertex2f( 1, -1);
-	glVertex2f( 1,  1);
-	glVertex2f(-1,  1);
-	glEnd();
+	glColor3f(0, 1, 0);
+	draw_square();
+
+	glColor3f(0, 0, 0);
+	draw_box();
 
 	glPopMatrix();
 
-	glColor4f(1, 0, 0, 1);
-
-	glPushMatrix();
-	glTranslatef(c->_creature_body->p.x, c->_creature_body->p.y, 0);
-	glRotatef(cpvtoangle(c->_creature_body->rot) * 180 / M_PI, 0, 0, 1);
-	glScalef(50, 50, 0);
-
-	glBegin(GL_QUADS);
-	glVertex2f(-1, -1);
-	glVertex2f( 1, -1);
-	glVertex2f( 1,  1);
-	glVertex2f(-1,  1);
-	glEnd();
+	for (simulation::creature_set::iterator i = sim->_creatures.begin(),
+		end = sim->_creatures.end(); i != end; ++i)
+	{
+		creature* c = *i;
 
 #if 0
-	glColor4f(0, 0, 0, 1);
-	glBegin(GL_LINES);
-	glVertex2f(0, 0);
-	glVertex2f(5 * neurones[creature::NEURONE_OUTPUT_MOVE_LEFT], 0);
-
-	glVertex2f(0, 0);
-	glVertex2f(-5 * neurones[creature::NEURONE_OUTPUT_MOVE_RIGHT], 0);
-
-	glVertex2f(0, 0);
-	glVertex2f(0, -5 * neurones[creature::NEURONE_OUTPUT_MOVE_UP]);
-
-	glVertex2f(0, 0);
-	glVertex2f(0, 5 * neurones[creature::NEURONE_OUTPUT_MOVE_DOWN]);
-	glEnd();
+		unsigned int n = c->_brain->_nr_neurones;
+		double* synapses = c->_brain->_synapses;
+		double* neurones = c->_brain->_neurones[rd];
 #endif
 
-	glPopMatrix();
+		glPushMatrix();
+		glTranslatef(c->_creature_body->p.x, c->_creature_body->p.y, 0);
+		glRotatef(cpvtoangle(c->_creature_body->rot) * 180 / M_PI, 0, 0, 1);
+		glScalef(50, 50, 0);
+
+		glColor3f(1, 0, 0);
+		draw_square();
+
+		glColor3f(0, 0, 0);
+		draw_box();
+
+#if 0
+		glColor4f(0, 0, 0, 1);
+		glBegin(GL_LINES);
+		glVertex2f(0, 0);
+		glVertex2f(5 * neurones[creature::NEURONE_OUTPUT_MOVE_LEFT], 0);
+
+		glVertex2f(0, 0);
+		glVertex2f(-5 * neurones[creature::NEURONE_OUTPUT_MOVE_RIGHT], 0);
+
+		glVertex2f(0, 0);
+		glVertex2f(0, -5 * neurones[creature::NEURONE_OUTPUT_MOVE_UP]);
+
+		glVertex2f(0, 0);
+		glVertex2f(0, 5 * neurones[creature::NEURONE_OUTPUT_MOVE_DOWN]);
+		glEnd();
+#endif
+
+		glPopMatrix();
+	}
 
 #if 0
 	glColor4f(0, 0, 0, 0.5);
@@ -152,7 +188,42 @@ display(void)
 	SDL_GL_SwapBuffers();
 	capture();
 
+	rd ^= 1;
+	wr ^= 1;
+
 	sim->step();
+}
+
+static void
+init()
+{
+	main_bc = new brain_configuration(32);
+	main_bc->restore("best-brain");
+	sim = new simulation();
+
+	for (unsigned int i = 0; i < NR_CREATURES; ++i) {
+		bc[i] = new brain_configuration(32);
+		*bc[i] = *main_bc;
+
+		b[i] = new brain(bc[i]);
+		c[i] = new creature(b[i], sim->_food_body);
+		sim->_creatures.insert(c[i]);
+		c[i]->add_to_space(sim->_space);
+	}
+}
+
+static void
+destroy()
+{
+	for (unsigned int i = 0; i < NR_CREATURES; ++i) {
+		c[i]->remove_from_space(sim->_space);
+		delete c[i];
+		delete b[i];
+		delete bc[i];
+	}
+
+	delete main_bc;
+	delete sim;
 }
 
 static void
@@ -160,19 +231,9 @@ keyboard(SDL_KeyboardEvent* key)
 {
 	switch(key->keysym.sym) {
 	case SDLK_RETURN:
-		c->remove_from_space(sim->_space);
-		delete c;
-		delete b;
-		delete bc;
-		delete sim;
-
-		bc = new brain_configuration(32);
-		bc->restore("best-brain");
-		b = new brain(bc);
-		sim = new simulation();
-		c = new creature(b, sim->_food_body);
-		sim->_creatures.insert(c);
-		c->add_to_space(sim->_space);
+		/* Reinitialise the simulation */
+		destroy();
+		init();
 		break;
 	case SDLK_ESCAPE:
 		{
@@ -214,28 +275,29 @@ main(int argc, char* argv[])
 	glEnable(GL_TEXTURE_2D);
 
 	glEnable(GL_LINE_SMOOTH);
-	glLineWidth(2.8);
+	glLineWidth(1.8);
 
 	resize(640, 480);
 
-	bc = new brain_configuration(32);
-	bc->restore("best-brain");
-	b = new brain(bc);
-	sim = new simulation();
-	c = new creature(b, sim->_food_body);
-	sim->_creatures.insert(c);
-	c->add_to_space(sim->_space);
+	init();
 
+#ifndef CONFIG_CAPTURE
 	SDL_TimerID display_timer = SDL_AddTimer(1000 / 100,
 		&displayTimer, NULL);
 	if (!display_timer)
 		exit(1);
+#endif
 
 	int running = 1;
 	while (running) {
 		SDL_Event ev;
 
+#ifdef CONFIG_CAPTURE
+		display();
+		while (SDL_PollEvent(&ev))
+#else
 		SDL_WaitEvent(&ev);
+#endif
 		switch (ev.type) {
 		case SDL_KEYDOWN:
 			keyboard(&ev.key);
@@ -252,11 +314,7 @@ main(int argc, char* argv[])
 		}
 	}
 
-	c->remove_from_space(sim->_space);
-	delete c;
-	delete b;
-	delete bc;
-	delete sim;
+	destroy();
 
 	SDL_Quit();
 	return 0;
