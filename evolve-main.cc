@@ -16,7 +16,10 @@ extern "C" {
 static unsigned int
 test_brain(brain* b)
 {
-	simulation* sim = new simulation(b);
+	simulation* sim = new simulation();
+	creature* c = new creature(b, sim->_food_body, 0, 0, 0);
+	sim->_creatures.insert(c);
+	c->add_to_space(sim->_space);
 
 #if 0
 	/* Distance at the beginning of the simulation */
@@ -33,10 +36,12 @@ test_brain(brain* b)
 		cpvsub(sim->_creature_body->p, sim->_food_body->p));
 #endif
 
+	unsigned int nr_hit_food = c->_nr_hit_food;
+
+	delete c;
 	delete sim;
 
-//	return (d2 - d1) / d1;
-	return sim->_nr_hit_food;
+	return nr_hit_food;
 }
 
 static unsigned int
