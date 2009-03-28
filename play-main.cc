@@ -9,16 +9,19 @@ extern "C" {
 #include <chipmunk.h>
 }
 
+//#define CONFIG_CAPTURE
 #undef CONFIG_CAPTURE
+#define WIDTH 640
+#define HEIGHT 480
 
 #include "brain.hh"
 #include "brain_configuration.hh"
 #include "capture.hh"
 #include "simulation.hh"
 
-static brain_configuration* main_bc;
+//static brain_configuration* main_bc;
 
-#define NR_CREATURES 120
+#define NR_CREATURES 150
 
 static brain_configuration* bc[NR_CREATURES];
 static brain* b[NR_CREATURES];
@@ -151,7 +154,7 @@ display(void)
 		glRotatef(cpvtoangle(c->_creature_body->rot) * 180 / M_PI, 0, 0, 1);
 		glScalef(50, 50, 0);
 
-		glColor3f(1, 0, 0);
+		glColor3f(c->_red, c->_green, c->_blue);
 		draw_square();
 
 		glColor3f(0, 0, 0);
@@ -197,16 +200,33 @@ display(void)
 static void
 init()
 {
-	main_bc = new brain_configuration(32);
+	brain_configuration* main_bc = new brain_configuration(32);
 	main_bc->restore("best-brain");
+
+	brain_configuration* main_bc2 = new brain_configuration(32);
+	main_bc2->restore("best-brain2");
+
+	brain_configuration* main_bc3 = new brain_configuration(32);
+	main_bc3->restore("best-brain3");
+
 	sim = new simulation();
 
 	for (unsigned int i = 0; i < NR_CREATURES; ++i) {
 		bc[i] = new brain_configuration(32);
-		*bc[i] = *main_bc;
+		if (i % 3 == 0)
+			*bc[i] = *main_bc;
+		else if (i % 3 == 1)
+			*bc[i] = *main_bc2;
+		else
+			*bc[i] = *main_bc3;
+
+		//bc[i]->mutate();
 
 		b[i] = new brain(bc[i]);
-		c[i] = new creature(b[i], sim->_food_body);
+		c[i] = new creature(b[i], sim->_food_body,
+			i % 3 != 0,
+			0,
+			i % 3 != 1);
 		sim->_creatures.insert(c[i]);
 		c[i]->add_to_space(sim->_space);
 	}
@@ -222,7 +242,7 @@ destroy()
 		delete bc[i];
 	}
 
-	delete main_bc;
+	//delete main_bc;
 	delete sim;
 }
 
@@ -263,7 +283,7 @@ main(int argc, char* argv[])
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 
-	SDL_Surface *surface = SDL_SetVideoMode(640, 480, 0, SDL_OPENGL);
+	SDL_Surface *surface = SDL_SetVideoMode(WIDTH, HEIGHT, 0, SDL_OPENGL);
 	if (!surface)
 		exit(1);
 
@@ -277,7 +297,7 @@ main(int argc, char* argv[])
 	glEnable(GL_LINE_SMOOTH);
 	glLineWidth(1.8);
 
-	resize(640, 480);
+	resize(WIDTH, HEIGHT);
 
 	init();
 

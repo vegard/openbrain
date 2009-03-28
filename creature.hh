@@ -32,7 +32,7 @@ public:
 	};
 
 public:
-	creature(brain*, cpBody* food_body);
+	creature(brain*, cpBody* food_body, double red, double green, double blue);
 	~creature();
 
 public:
@@ -46,6 +46,10 @@ public:
 
 	cpBody* _food_body;
 
+	double _red;
+	double _green;
+	double _blue;
+
 	cpBody* _creature_body;
 	cpShape* _creature_shape;
 
@@ -53,17 +57,20 @@ public:
 	unsigned int _nr_hit_food;
 };
 
-creature::creature(brain* b, cpBody* food_body):
+creature::creature(brain* b, cpBody* food_body, double red, double green, double blue):
 	_brain(b),
-	_food_body(food_body)
+	_food_body(food_body),
+	_red(red),
+	_green(green),
+	_blue(blue)
 {
 	_creature_body = cpBodyNew(1.0, 1.0);
 	_creature_body->p.x = 1000. * (2.0 * rand() / RAND_MAX - 1);
 	_creature_body->p.y = 1000. * (2.0 * rand() / RAND_MAX - 1);
 
-	_creature_shape = cpCircleShapeNew(_creature_body, 50.0, cpvzero);
+	_creature_shape = cpCircleShapeNew(_creature_body, 60.0, cpvzero);
 	_creature_shape->e = 0;
-	_creature_shape->u = 1;
+	_creature_shape->u = 0.5;
 	_creature_shape->collision_type = COLLISION_TYPE_CREATURE;
 	_creature_shape->data = (void*) this;
 
