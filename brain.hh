@@ -56,9 +56,6 @@ brain::~brain()
 void
 brain::step()
 {
-	rd ^= 1;
-	wr ^= 1;
-
 #if 0
 	for (unsigned int i = 0; i < _nr_neurones; ++i)
 		printf("%.2f ", _neurones[rd][i]);
@@ -85,6 +82,7 @@ brain::step()
 		_neurones[wr][i] = sum;
 	}
 
+#if 0
 	/* Learning factor */
 	static const double lf = 1e-8;
 
@@ -106,6 +104,7 @@ brain::step()
 				_synapses[i * _nr_neurones + j] = v - u;
 		}
 	}
+#endif
 }
 
 #endif

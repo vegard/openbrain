@@ -126,24 +126,24 @@ creature::step()
 
 
 	/* Update inputs */
-	_brain->_neurones[wr][NEURONE_INPUT_RELATIVE_POS_LEFT]
+	_brain->_neurones[rd][NEURONE_INPUT_RELATIVE_POS_LEFT]
 		= clamp((_creature_body->p.x - _food_body->p.x) / 1000);
-	_brain->_neurones[wr][NEURONE_INPUT_RELATIVE_POS_RIGHT]
+	_brain->_neurones[rd][NEURONE_INPUT_RELATIVE_POS_RIGHT]
 		= clamp((_food_body->p.x - _creature_body->p.x) / 1000);
 
-	_brain->_neurones[wr][NEURONE_INPUT_RELATIVE_POS_UP]
+	_brain->_neurones[rd][NEURONE_INPUT_RELATIVE_POS_UP]
 		= clamp((_creature_body->p.y - _food_body->p.y) / 1000);
-	_brain->_neurones[wr][NEURONE_INPUT_RELATIVE_POS_DOWN]
+	_brain->_neurones[rd][NEURONE_INPUT_RELATIVE_POS_DOWN]
 		= clamp((_food_body->p.y - _creature_body->p.y) / 1000);
 
-	_brain->_neurones[wr][NEURONE_INPUT_RELATIVE_VEL_LEFT]
+	_brain->_neurones[rd][NEURONE_INPUT_RELATIVE_VEL_LEFT]
 		= clamp((_creature_body->v.x - _food_body->v.x) / 100);
-	_brain->_neurones[wr][NEURONE_INPUT_RELATIVE_VEL_RIGHT]
+	_brain->_neurones[rd][NEURONE_INPUT_RELATIVE_VEL_RIGHT]
 		= clamp((_food_body->v.x - _creature_body->v.x) / 100);
 
-	_brain->_neurones[wr][NEURONE_INPUT_RELATIVE_VEL_UP]
+	_brain->_neurones[rd][NEURONE_INPUT_RELATIVE_VEL_UP]
 		= clamp((_creature_body->v.y - _food_body->v.y) / 100);
-	_brain->_neurones[wr][NEURONE_INPUT_RELATIVE_VEL_DOWN]
+	_brain->_neurones[rd][NEURONE_INPUT_RELATIVE_VEL_DOWN]
 		= clamp((_food_body->v.y - _creature_body->v.y) / 100);
 
 #if 0
