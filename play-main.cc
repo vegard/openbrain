@@ -1,3 +1,5 @@
+#include <vector>
+
 extern "C" {
 #include <math.h>
 #include <time.h>
@@ -19,15 +21,36 @@ extern "C" {
 #include "capture.hh"
 #include "simulation.hh"
 
-//static brain_configuration* main_bc;
+class simulation_creature_listener: public creature_listener {
+public:
+	simulation_creature_listener();
+	~simulation_creature_listener();
 
-#define NR_CREATURES 150
-
-static brain_configuration* bc[NR_CREATURES];
-static brain* b[NR_CREATURES];
-static creature* c[NR_CREATURES];
+public:
+	void handle(creature* c);
+};
 
 static simulation* sim;
+static simulation_creature_listener _creature_died_listener;
+
+typedef std::vector<creature*> creature_vector;
+static creature_vector dead_creatures;
+
+static brain_configuration* best_bc = NULL;
+
+simulation_creature_listener::simulation_creature_listener()
+{
+}
+
+simulation_creature_listener::~simulation_creature_listener()
+{
+}
+
+void
+simulation_creature_listener::handle(creature* c)
+{
+	dead_creatures.push_back(c);
+}
 
 static Uint32
 displayTimer(Uint32 interval, void *unused)
@@ -180,14 +203,6 @@ display(void)
 		glPopMatrix();
 	}
 
-#if 0
-	glColor4f(0, 0, 0, 0.5);
-	glBegin(GL_LINES);
-	glVertex2f(sim->_creature_body->p.x, sim->_creature_body->p.y);
-	glVertex2f(sim->_food_body->p.x, sim->_food_body->p.y);
-	glEnd();
-#endif
-
 	SDL_GL_SwapBuffers();
 	capture();
 
@@ -195,54 +210,75 @@ display(void)
 	wr ^= 1;
 
 	sim->step();
+
+	for (creature_vector::iterator i = dead_creatures.begin(),
+		end = dead_creatures.end(); i != end; ++i)
+	{
+		creature* c = *i;
+
+		printf("creature with lifetime %lu died\n", c->_lifetime);
+
+		c->remove_from_space(sim->_space);
+		sim->_creatures.erase(c);
+		delete c->_brain;
+		delete c;
+	}
+
+	static double best = 0;
+
+//	if (dead_creatures.size()) {
+		for (simulation::creature_set::iterator i = sim->_creatures.begin(),
+			end = sim->_creatures.end(); i != end; ++i)
+		{
+			creature* c = *i;
+
+			double x = 1e0 * c->_nr_hit_food / (1 + c->_lifetime)
+				+ 1e-5 * c->_lifetime;
+
+			if (x > best) {
+				best_bc = c->_brain_configuration;
+				best = x;
+
+				printf("best = %f\n", best);
+			}
+		}
+//	}
+
+	static int recreate = 0;
+	if (++recreate == 500) {
+		recreate = 0;
+
+		brain_configuration* bc = new brain_configuration(32);
+		*bc = *best_bc;
+		bc->mutate2();
+
+		brain* b = new brain(bc);
+
+		creature* c = new creature(bc, b, sim->_food_body,
+			1.0 * rand() / RAND_MAX,
+			1.0 * rand() / RAND_MAX,
+			1.0 * rand() / RAND_MAX,
+			&_creature_died_listener);
+
+		sim->_creatures.insert(c);
+		c->add_to_space(sim->_space);
+	}
+
+	dead_creatures.clear();
 }
 
 static void
 init()
 {
-	brain_configuration* main_bc = new brain_configuration(32);
-	main_bc->restore("best-brain");
-
-	brain_configuration* main_bc2 = new brain_configuration(32);
-	main_bc2->restore("best-brain2");
-
-	brain_configuration* main_bc3 = new brain_configuration(32);
-	main_bc3->restore("best-brain3");
+	best_bc = new brain_configuration(32);
+	best_bc->restore("best-brain4");
 
 	sim = new simulation();
-
-	for (unsigned int i = 0; i < NR_CREATURES; ++i) {
-		bc[i] = new brain_configuration(32);
-		if (i % 3 == 0)
-			*bc[i] = *main_bc;
-		else if (i % 3 == 1)
-			*bc[i] = *main_bc2;
-		else
-			*bc[i] = *main_bc3;
-
-		//bc[i]->mutate();
-
-		b[i] = new brain(bc[i]);
-		c[i] = new creature(b[i], sim->_food_body,
-			i % 3 != 0,
-			0,
-			i % 3 != 1);
-		sim->_creatures.insert(c[i]);
-		c[i]->add_to_space(sim->_space);
-	}
 }
 
 static void
 destroy()
 {
-	for (unsigned int i = 0; i < NR_CREATURES; ++i) {
-		c[i]->remove_from_space(sim->_space);
-		delete c[i];
-		delete b[i];
-		delete bc[i];
-	}
-
-	//delete main_bc;
 	delete sim;
 }
 

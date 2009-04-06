@@ -6,6 +6,7 @@ extern "C" {
 }
 
 #include "collision_type.hh"
+#include "creature_listener.hh"
 
 class creature {
 public:
@@ -32,7 +33,7 @@ public:
 	};
 
 public:
-	creature(brain*, cpBody* food_body, double red, double green, double blue);
+	creature(brain_configuration* bc, brain* b, cpBody* food_body, double red, double green, double blue, creature_listener* died_listener);
 	~creature();
 
 public:
@@ -42,6 +43,7 @@ public:
 	void step();
 
 public:
+	brain_configuration* _brain_configuration;
 	brain* _brain;
 
 	cpBody* _food_body;
@@ -50,19 +52,28 @@ public:
 	double _green;
 	double _blue;
 
+	creature_listener* _died_listener;
+
 	cpBody* _creature_body;
 	cpShape* _creature_shape;
 
 	bool _creature_hit_food;
 	unsigned int _nr_hit_food;
+
+	double _energy;
+	unsigned long _lifetime;
 };
 
-creature::creature(brain* b, cpBody* food_body, double red, double green, double blue):
+creature::creature(brain_configuration* bc, brain* b, cpBody* food_body, double red, double green, double blue, creature_listener* died_listener):
+	_brain_configuration(bc),
 	_brain(b),
 	_food_body(food_body),
 	_red(red),
 	_green(green),
-	_blue(blue)
+	_blue(blue),
+	_died_listener(died_listener),
+	_energy(1000),
+	_lifetime(0)
 {
 	_creature_body = cpBodyNew(1.0, 1.0);
 	_creature_body->p.x = 1000. * (2.0 * rand() / RAND_MAX - 1);
@@ -108,6 +119,9 @@ static inline double clamp(double x)
 void
 creature::step()
 {
+	/* Um, yes, it's better to use timestamps... */
+	++_lifetime;
+
 	if (_creature_hit_food) {
 		++_nr_hit_food;
 		_creature_hit_food = false;
@@ -115,6 +129,8 @@ creature::step()
 		_food_body->p.x = 1800. * (2.0 * rand() / RAND_MAX - 1);
 		_food_body->p.y = 1800. * (2.0 * rand() / RAND_MAX - 1);
 		_food_body->v = cpvzero;
+
+		_energy += 200;
 	}
 
 #if 0
@@ -161,6 +177,10 @@ creature::step()
 		- _brain->_neurones[rd][NEURONE_OUTPUT_MOVE_DOWN];
 
 	cpBodyApplyImpulse(_creature_body, cpv(jx, jy), cpvzero);
+
+	_energy -= 0.3 + cpvlength(cpv(jx, jy));
+	if (_energy < 0)
+		_died_listener->handle(this);
 }
 
 #endif
