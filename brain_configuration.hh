@@ -22,6 +22,7 @@ public:
 
 	void randomize();
 	void mutate();
+	void mutate2();
 
 public:
 	unsigned int _nr_neurones;
@@ -110,6 +111,25 @@ brain_configuration::mutate()
 		/* Just assign a new random value */
 		_synapses[x * _nr_neurones + y]
 			= 2.0 * rand() / RAND_MAX - 1.0;
+	}
+}
+
+void
+brain_configuration::mutate2()
+{
+	for (unsigned int i = 0; i < _nr_neurones; ++i) {
+		for (unsigned int j = 0; j < _nr_neurones; ++j) {
+			double v = _synapses[i * _nr_neurones + j];
+
+			v += 1e-2 * (2.0 * rand() / RAND_MAX - 1.0);
+
+			if (v < -1)
+				v = -1;
+			else if (v > 1)
+				v = 1;
+
+			_synapses[i * _nr_neurones + j] = v;
+		}
 	}
 }
 
