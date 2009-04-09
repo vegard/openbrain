@@ -42,15 +42,23 @@ brain_configuration::~brain_configuration()
 
 brain_configuration::brain_configuration(const brain_configuration& bc)
 {
-	for (unsigned int i = 0; i < _nr_neurones * _nr_neurones; ++i)
-		_synapses[i] = bc._synapses[i];
+	for (unsigned int i = 0; i < _nr_neurones; ++i) {
+		for (unsigned int j = 0; j < _nr_neurones; ++j) {
+			_synapses[i + j * _nr_neurones]
+				= bc._synapses[i + j * bc._nr_neurones];
+		}
+	}
 }
 
 brain_configuration&
 brain_configuration::operator=(const brain_configuration& bc)
 {
-	for (unsigned int i = 0; i < _nr_neurones * _nr_neurones; ++i)
-		_synapses[i] = bc._synapses[i];
+	for (unsigned int i = 0; i < _nr_neurones; ++i) {
+		for (unsigned int j = 0; j < _nr_neurones; ++j) {
+			_synapses[i + j * _nr_neurones]
+				= bc._synapses[i + j * bc._nr_neurones];
+		}
+	}
 
 	return *this;
 }
