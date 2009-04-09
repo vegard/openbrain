@@ -30,10 +30,13 @@ public:
 		NEURONE_OUTPUT_MOVE_RIGHT,
 		NEURONE_OUTPUT_MOVE_UP,
 		NEURONE_OUTPUT_MOVE_DOWN,
+
+		/* Current energy level */
+		NEURONE_INPUT_ENERGY = 32,
 	};
 
 public:
-	creature(brain_configuration* bc, brain* b, cpBody* food_body, double red, double green, double blue, creature_listener* died_listener);
+	creature(brain_configuration* bc, brain* b, cpBody* food_body, double red, double green, double blue, creature_listener* died_listener, creature_listener* ate_listener);
 	~creature();
 
 public:
@@ -53,6 +56,7 @@ public:
 	double _blue;
 
 	creature_listener* _died_listener;
+	creature_listener* _ate_listener;
 
 	cpBody* _creature_body;
 	cpShape* _creature_shape;
@@ -64,7 +68,7 @@ public:
 	unsigned long _lifetime;
 };
 
-creature::creature(brain_configuration* bc, brain* b, cpBody* food_body, double red, double green, double blue, creature_listener* died_listener):
+creature::creature(brain_configuration* bc, brain* b, cpBody* food_body, double red, double green, double blue, creature_listener* died_listener, creature_listener* ate_listener):
 	_brain_configuration(bc),
 	_brain(b),
 	_food_body(food_body),
@@ -72,7 +76,8 @@ creature::creature(brain_configuration* bc, brain* b, cpBody* food_body, double 
 	_green(green),
 	_blue(blue),
 	_died_listener(died_listener),
-	_energy(1000),
+	_ate_listener(ate_listener),
+	_energy(2000),
 	_lifetime(0)
 {
 	_creature_body = cpBodyNew(1.0, 1.0);
@@ -122,24 +127,6 @@ creature::step()
 	/* Um, yes, it's better to use timestamps... */
 	++_lifetime;
 
-	if (_creature_hit_food) {
-		++_nr_hit_food;
-		_creature_hit_food = false;
-
-		_food_body->p.x = 1800. * (2.0 * rand() / RAND_MAX - 1);
-		_food_body->p.y = 1800. * (2.0 * rand() / RAND_MAX - 1);
-		_food_body->v = cpvzero;
-
-		_energy += 200;
-	}
-
-#if 0
-	printf("creature: %.3f %.3f\n",
-		_creature_body->p.x, _creature_body->p.y);
-	printf("target:   %.3f %.3f\n",
-		_food_body->p.x, _food_body->p.y);
-#endif
-
 
 	/* Update inputs */
 	_brain->_neurones[rd][NEURONE_INPUT_RELATIVE_POS_LEFT]
@@ -162,11 +149,8 @@ creature::step()
 	_brain->_neurones[rd][NEURONE_INPUT_RELATIVE_VEL_DOWN]
 		= clamp((_food_body->v.y - _creature_body->v.y) / 100);
 
-#if 0
-	printf("input: %.2f %.2f\n",
-		_brain->_neurones[wr][NEURONE_INPUT_RELATIVE_POS_LEFT],
-		_brain->_neurones[wr][NEURONE_INPUT_RELATIVE_VEL_LEFT]);
-#endif
+	_brain->_neurones[rd][NEURONE_INPUT_ENERGY]
+		= clamp(_energy / 10000);
 
 	_brain->step();
 

@@ -20,6 +20,7 @@ public:
 	void save(const char* filename);
 	void restore(const char* filename);
 
+	void zero();
 	void randomize();
 	void mutate();
 	void mutate2();
@@ -93,6 +94,16 @@ brain_configuration::restore(const char* filename)
 	FILE* fp = fopen(filename, "r");
 	fread(_synapses, sizeof(*_synapses), _nr_neurones * _nr_neurones, fp);
 	fclose(fp);
+}
+
+void
+brain_configuration::zero()
+{
+	for (unsigned int i = 0; i < _nr_neurones; ++i) {
+		for (unsigned int j = 0; j < _nr_neurones; ++j) {
+			_synapses[i * _nr_neurones + j] = 0;
+		}
+	}
 }
 
 void

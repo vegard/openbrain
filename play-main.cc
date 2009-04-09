@@ -19,37 +19,39 @@ extern "C" {
 #include "brain.hh"
 #include "brain_configuration.hh"
 #include "capture.hh"
+#include "creature_listener.hh"
 #include "simulation.hh"
 
-class simulation_creature_listener: public creature_listener {
+class died_creature_listener: public creature_listener {
 public:
-	simulation_creature_listener();
-	~simulation_creature_listener();
+	void handle(creature* c);
+};
 
+class ate_creature_listener: public creature_listener {
 public:
 	void handle(creature* c);
 };
 
 static simulation* sim;
-static simulation_creature_listener _creature_died_listener;
+static died_creature_listener _died_creature_listener;
+static ate_creature_listener _ate_creature_listener;
 
 typedef std::vector<creature*> creature_vector;
 static creature_vector dead_creatures;
+static creature_vector full_creatures;
 
 static brain_configuration* best_bc = NULL;
 
-simulation_creature_listener::simulation_creature_listener()
+void
+died_creature_listener::handle(creature* c)
 {
-}
-
-simulation_creature_listener::~simulation_creature_listener()
-{
+	dead_creatures.push_back(c);
 }
 
 void
-simulation_creature_listener::handle(creature* c)
+ate_creature_listener::handle(creature* c)
 {
-	dead_creatures.push_back(c);
+	full_creatures.push_back(c);
 }
 
 static Uint32
@@ -166,39 +168,32 @@ display(void)
 	{
 		creature* c = *i;
 
-#if 0
-		unsigned int n = c->_brain->_nr_neurones;
-		double* synapses = c->_brain->_synapses;
-		double* neurones = c->_brain->_neurones[rd];
-#endif
+		glPushMatrix();
+		glTranslatef(c->_creature_body->p.x, c->_creature_body->p.y, 0);
+		glRotatef(cpvtoangle(c->_creature_body->rot) * 180 / M_PI, 0, 0, 1);
+		glScalef(50, 50, 0);
+		glScalef(5e-4 * c->_energy, 5e-4 * c->_energy, 0);
+		glColor4f(0, 0, 0, 1. / 3);
+		draw_square();
+
+		glPopMatrix();
+	}
+
+	for (simulation::creature_set::iterator i = sim->_creatures.begin(),
+		end = sim->_creatures.end(); i != end; ++i)
+	{
+		creature* c = *i;
 
 		glPushMatrix();
 		glTranslatef(c->_creature_body->p.x, c->_creature_body->p.y, 0);
 		glRotatef(cpvtoangle(c->_creature_body->rot) * 180 / M_PI, 0, 0, 1);
 		glScalef(50, 50, 0);
 
-		glColor3f(c->_red, c->_green, c->_blue);
+		glColor4f(c->_red, c->_green, c->_blue, 1e-3 * c->_energy);
 		draw_square();
 
-		glColor3f(0, 0, 0);
+		glColor4f(0, 0, 0, 1e-3 * c->_energy);
 		draw_box();
-
-#if 0
-		glColor4f(0, 0, 0, 1);
-		glBegin(GL_LINES);
-		glVertex2f(0, 0);
-		glVertex2f(5 * neurones[creature::NEURONE_OUTPUT_MOVE_LEFT], 0);
-
-		glVertex2f(0, 0);
-		glVertex2f(-5 * neurones[creature::NEURONE_OUTPUT_MOVE_RIGHT], 0);
-
-		glVertex2f(0, 0);
-		glVertex2f(0, -5 * neurones[creature::NEURONE_OUTPUT_MOVE_UP]);
-
-		glVertex2f(0, 0);
-		glVertex2f(0, 5 * neurones[creature::NEURONE_OUTPUT_MOVE_DOWN]);
-		glEnd();
-#endif
 
 		glPopMatrix();
 	}
@@ -226,29 +221,41 @@ display(void)
 
 	static double best = 0;
 
-//	if (dead_creatures.size()) {
-		for (simulation::creature_set::iterator i = sim->_creatures.begin(),
-			end = sim->_creatures.end(); i != end; ++i)
-		{
-			creature* c = *i;
+	for (creature_vector::iterator i = full_creatures.begin(),
+		end = full_creatures.end(); i != end; ++i)
+	{
+		creature* c = *i;
 
-			double x = 1e0 * c->_nr_hit_food / (1 + c->_lifetime)
-				+ 1e-5 * c->_lifetime;
+		++c->_nr_hit_food;
 
-			if (x > best) {
-				best_bc = c->_brain_configuration;
-				best = x;
+		c->_food_body->p.x = 1800. * (2.0 * rand() / RAND_MAX - 1);
+		c->_food_body->p.y = 1800. * (2.0 * rand() / RAND_MAX - 1);
+		c->_food_body->v.x = (2.0 * rand() / RAND_MAX - 1);
+		c->_food_body->v.y = (2.0 * rand() / RAND_MAX - 1);
+		c->_food_body->v = cpvmult(cpvnormalize(c->_food_body->v), 40);
 
-				printf("best = %f\n", best);
-			}
+		c->_energy += 2000;
+
+		double x = 1e0 * c->_nr_hit_food / (1 + c->_lifetime)
+			+ 1e-5 * c->_lifetime;
+
+		if (x > best) {
+			best_bc = c->_brain_configuration;
+			best = x;
+
+			best_bc->save("best64");
+			printf("best = %f\n", best);
 		}
-//	}
+	}
+
+	full_creatures.clear();
 
 	static int recreate = 0;
-	if (++recreate == 500) {
+	if (++recreate == 1000) {
 		recreate = 0;
 
-		brain_configuration* bc = new brain_configuration(32);
+		brain_configuration* bc = new brain_configuration(64);
+		bc->randomize();
 		*bc = *best_bc;
 		bc->mutate2();
 
@@ -258,7 +265,8 @@ display(void)
 			1.0 * rand() / RAND_MAX,
 			1.0 * rand() / RAND_MAX,
 			1.0 * rand() / RAND_MAX,
-			&_creature_died_listener);
+			&_died_creature_listener,
+			&_ate_creature_listener);
 
 		sim->_creatures.insert(c);
 		c->add_to_space(sim->_space);
@@ -270,10 +278,29 @@ display(void)
 static void
 init()
 {
-	best_bc = new brain_configuration(32);
-	best_bc->restore("best-brain4");
+	best_bc = new brain_configuration(64);
+	best_bc->restore("best64");
 
 	sim = new simulation();
+
+	for (unsigned int i = 0; i < 5; ++i) {
+		brain_configuration* bc = new brain_configuration(64);
+		bc->randomize();
+		*bc = *best_bc;
+		bc->mutate2();
+
+		brain* b = new brain(bc);
+
+		creature* c = new creature(bc, b, sim->_food_body,
+			1.0 * rand() / RAND_MAX,
+			1.0 * rand() / RAND_MAX,
+			1.0 * rand() / RAND_MAX,
+			&_died_creature_listener,
+			&_ate_creature_listener);
+
+		sim->_creatures.insert(c);
+		c->add_to_space(sim->_space);
+	}
 }
 
 static void
