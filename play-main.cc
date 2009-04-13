@@ -120,36 +120,6 @@ display(void)
 
 	gluOrtho2D(-3000 / aspect, 3000 / aspect, -3000, 3000);
 
-#if 0
-	glPushMatrix();
-	glScalef(50, 50, 0);
-	glTranslatef(-1. * n / 2, -1. * n / 2, 0);
-
-	glBegin(GL_QUADS);
-	for (unsigned int i = 0; i < n; ++i) {
-		for (unsigned int j = 0; j < n; ++j) {
-			glColor4f(0, 0, 0.5 + 0.5 * synapses[i + j * n], 1);
-
-			glVertex2f(i + 0, 1 + j + 0);
-			glVertex2f(i + 1, 1 + j + 0);
-			glVertex2f(i + 1, 1 + j + 1);
-			glVertex2f(i + 0, 1 + j + 1);
-		}
-	}
-
-	for (unsigned int i = 0; i < n; ++i) {
-		glColor4f(1, 0, neurones[i], 1);
-
-		glVertex2f(i + 0, 0);
-		glVertex2f(i + 1, 0);
-		glVertex2f(i + 1, 1);
-		glVertex2f(i + 0, 1);
-	}
-	glEnd();
-
-	glPopMatrix();
-#endif
-
 	glPushMatrix();
 	glTranslatef(sim->_food_body->p.x, sim->_food_body->p.y, 0);
 	glRotatef(cpvtoangle(sim->_food_body->rot) * 180 / M_PI, 0, 0, 1);
