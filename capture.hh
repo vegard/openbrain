@@ -66,6 +66,7 @@ capture()
 
 	png_set_rows(png_ptr, info_ptr, rows);
 	png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
+	png_destroy_write_struct(&png_ptr, &info_ptr);
 
 	fclose(fp);
 }
