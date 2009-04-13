@@ -56,13 +56,6 @@ brain::~brain()
 void
 brain::step()
 {
-#if 0
-	for (unsigned int i = 0; i < _nr_neurones; ++i)
-		printf("%.2f ", _neurones[rd][i]);
-
-	printf("\n");
-#endif
-
 	for (unsigned int i = 0; i < _nr_neurones; ++i) {
 		double sum = 0;
 

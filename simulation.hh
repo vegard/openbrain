@@ -41,13 +41,6 @@ creature_food_collision(cpShape* a, cpShape* b,
 	simulation* s = (simulation*) data;
 	creature* c = (creature*) a->data;
 
-#if 0
-	/* When the creature reaches the food, simply toggle this flag. It
-	 * will be checked (and cleared) in step(), which also creates a
-	 * new food object in a different location. */
-	c->_creature_hit_food = true;
-#endif
-
 	c->_ate_listener->handle(c);
 	return 1;
 }
